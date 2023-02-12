@@ -57,12 +57,21 @@ class ChaCha20Cipher:
     def encrypt(self):
         # Crea una lista de estado para manipular los datos
         state = [0] * 16
+        initial_state = [0] * 16
+        final_state = [0] * 16
+
+        initial_state[0:4] = self._constant
+        initial_state[4:12] = [int(self._key[0], 16), int(self._key[1], 16), int(self._key[2], 16), int(self._key[3], 16),
+                       int(self._key[4], 16), int(self._key[5], 16), int(self._key[6], 16), int(self._key[7], 16)]
+        initial_state[12] = int(self._counter, 16)
+        initial_state[13:16] = [int(self._nonce[0], 16), int(self._nonce[1], 16), int(self._nonce[2], 16)]
         # Inicializa el estado con las constantes y la clave
         state[0:4] = self._constant
         state[4:12] = [int(self._key[0], 16), int(self._key[1], 16), int(self._key[2], 16), int(self._key[3], 16),
                        int(self._key[4], 16), int(self._key[5], 16), int(self._key[6], 16), int(self._key[7], 16)]
         state[12] = int(self._counter, 16)
         state[13:16] = [int(self._nonce[0], 16), int(self._nonce[1], 16), int(self._nonce[2], 16)]
+
         # Ejecuta 20 rondas de manipulación de datos
         for i in range(10):
             state = self.quarter_round(state, 0, 4, 8, 12)
@@ -74,28 +83,33 @@ class ChaCha20Cipher:
             state = self.quarter_round(state, 2, 7, 8, 13)
             state = self.quarter_round(state, 3, 4, 9, 14)
             # Guardar la traza
-            self._all_trace += f'\n State tras la iteración número {i+1}:\n'
-            aux = ''
-            for i in state[0:4]:
-                aux += hex(i) + ', '
-            self._all_trace += '\n' + aux
-            aux = ''
-            for i in state[4:8]:
-                aux += hex(i) + ', '
-            self._all_trace += '\n' + aux
-            aux = ''
-            for i in state[8:12]:
-                aux += hex(i) + ', '
-            self._all_trace += '\n' + aux
-            aux = ''
-            for i in state[12:16]:
-                aux += hex(i) + ', '
-            self._all_trace += '\n' + aux + '\n'
-        self._state = state
+            self.give_trace(state, msg=f'State tras la iteración número {i+1}:')
+        for i in range(16):
+            final_state[i] = initial_state[i] + state[i]
+        self.give_trace(final_state, msg='State tras salida generador:')
 
     @property
     def all_trace(self):
         return self._all_trace
+
+    def give_trace(self, state, msg):
+        self._all_trace += f'\n {msg}\n'
+        aux = ''
+        for i in state[0:4]:
+            aux += hex(i) + ', '
+        self._all_trace += '\n' + aux
+        aux = ''
+        for i in state[4:8]:
+            aux += hex(i) + ', '
+        self._all_trace += '\n' + aux
+        aux = ''
+        for i in state[8:12]:
+            aux += hex(i) + ', '
+        self._all_trace += '\n' + aux
+        aux = ''
+        for i in state[12:16]:
+            aux += hex(i) + ', '
+        self._all_trace += '\n' + aux + '\n'
 
     def print_state(self):
         print('State Tres 20')
