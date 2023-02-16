@@ -58,7 +58,7 @@ class ChaCha20Cipher:
         # Crea una lista de estado para manipular los datos
         state = [0] * 16
         initial_state = [0] * 16
-        final_state = [0] * 16
+        self.final_state = [0] * 16
 
         initial_state[0:4] = self._constant
         initial_state[4:12] = [int(self._key[0], 16), int(self._key[1], 16), int(self._key[2], 16), int(self._key[3], 16),
@@ -85,8 +85,66 @@ class ChaCha20Cipher:
             # Guardar la traza
             self.give_trace(state, msg=f'State tras la iteración número {i+1}:')
         for i in range(16):
-            final_state[i] = initial_state[i] + state[i]
-        self.give_trace(final_state, msg='State tras salida generador:')
+            self.final_state[i] = initial_state[i] + state[i]
+        self.give_trace(self.final_state, msg='State tras salida generador:')
+
+    # def decrypt(self):
+    #     state = [0] * 16
+    #     initial_state = [0] * 16
+    #     final_state = [0] * 16
+    #     fin = [0] * 16
+    #
+    #
+    #     fin[0:4] = [0x0, 0x0, 0x0, 0x0]
+    #     fin[4:12] = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+    #     fin[12] = 0x0
+    #     fin[13:16] = [0x0, 0x0, 0xa6506ce1]
+    #
+    #     initial_state[0:4] = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
+    #     initial_state[4:12] = [0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c]
+    #     initial_state[12] = 0x1
+    #     initial_state[13:16] = [0x0, 0x4a, 0x0]
+    #
+    #     state[0:4] = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
+    #     state[4:12] = [0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c]
+    #     state[12] = 0x1
+    #     state[13:16] = [0x0, 0x4a, 0x0]
+    #
+    #
+    #     # Ejecuta 20 rondas de manipulación de datos
+    #     for i in range(10):
+    #         state = self.quarter_round(state, 0, 4, 8, 12)
+    #         state = self.quarter_round(state, 1, 5, 9, 13)
+    #         state = self.quarter_round(state, 2, 6, 10, 14)
+    #         state = self.quarter_round(state, 3, 7, 11, 15)
+    #         state = self.quarter_round(state, 0, 5, 10, 15)
+    #         state = self.quarter_round(state, 1, 6, 11, 12)
+    #         state = self.quarter_round(state, 2, 7, 8, 13)
+    #         state = self.quarter_round(state, 3, 4, 9, 14)
+    #         # Guardar la traza
+    #         self.give_trace(state, msg=f'State tras la iteración número {i + 1}:')
+    #     for i in range(16):
+    #         final_state[i] = initial_state[i] + state[i]
+    #     self.give_trace(final_state, msg='State tras salida generador:')
+    #     for i in range(16):
+    #         print(f'{fin[i]} ^= {final_state[i]}')
+    #         fin[i] ^= final_state[i]
+    #     self.give_trace(fin, msg='Mensaje decifrado:')
+
+    def decrypt(self):
+        fin = [0] * 16
+        fin[0:4] = [0x0, 0x0, 0x0, 0x0]
+        fin[4:12] = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+        fin[12] = 0x0
+        fin[13:16] = [0x0, 0x0, 0xa6506ce1]
+
+        for i in range(16):
+            fin[i] ^= self.final_state[i]
+        self.give_trace(fin, msg='State tras salida generador:')
+
+        
+
+
 
     @property
     def all_trace(self):
@@ -209,6 +267,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(encrypt_button)
         encrypt_button.clicked.connect(self.chacha20_cipher)
 
+        # boton de decifrado
+        decrypt_button = QPushButton("Decifrar")
+        layout.addWidget(decrypt_button)
+        decrypt_button.clicked.connect(self.chacha20_decipher)
+
     def chacha20_cipher(self):
         """Encargado de recopilar la infromación necesaria para ejecutar el encriptado con ayuda de ChaCha20Cipher"""
         constant = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
@@ -216,6 +279,16 @@ class MainWindow(QMainWindow):
                                                          self.input_nonce.toPlainText())
         chacha = ChaCha20Cipher(constant, key, counter, nonce)
         chacha.encrypt()
+        self.result_label.setPlainText(chacha.all_trace)
+
+    def chacha20_decipher(self):
+        """Encargado de recopilar la infromación necesaria para ejecutar el encriptado con ayuda de ChaCha20Cipher"""
+        constant = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
+        key, counter, nonce = convert_little_endian_data(self.input_key.toPlainText(), self.input_counter.toPlainText(),
+                                                         self.input_nonce.toPlainText())
+        chacha = ChaCha20Cipher(constant, key, counter, nonce)
+        chacha.encrypt()
+        chacha.decrypt()
         self.result_label.setPlainText(chacha.all_trace)
 
 if __name__ == '__main__':
